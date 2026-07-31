@@ -8,20 +8,20 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5173', 'https://gaurs-seven.vercel.app', 'https://gaursonprojects.in'], 
+  origin: ['http://localhost:3000', 'http://localhost:5173', 'https://alaris-frontend.vercel.app', 'https://centurion.gaursonprojects.in'],
   credentials: true
 }));
 app.use(express.json());
 
 // Google Sheets setup
-const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID; 
+const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID;
 const SHEET_NAME = 'Sheet1';
 
 // Initialize Google Sheets API
 const auth = new google.auth.GoogleAuth({
   credentials: {
     client_email: process.env.GOOGLE_CLIENT_EMAIL,
-    private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'), 
+    private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
   },
   scopes: ['https://www.googleapis.com/auth/spreadsheets'],
 });
@@ -30,12 +30,12 @@ const auth = new google.auth.GoogleAuth({
 async function testConnection() {
   try {
     const sheets = google.sheets({ version: 'v4', auth });
-    
+
     // Try to get sheet info
     const response = await sheets.spreadsheets.get({
       spreadsheetId: SPREADSHEET_ID,
     });
-    
+
     console.log('✅ Connected to Google Sheets:', response.data.properties.title);
     return true;
   } catch (error) {
@@ -48,26 +48,26 @@ async function testConnection() {
 async function prepareSheet() {
   try {
     const sheets = google.sheets({ version: 'v4', auth });
-    
+
     // Check if headers exist
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: `${SHEET_NAME}!A1:I1`,
     });
-    
+
     // If no headers, create them
     if (!response.data.values) {
       const headers = [
         ['Timestamp', 'Name', 'Email', 'Phone', 'City', 'Details', 'Form Type', 'Source', 'Submission Time']
       ];
-      
+
       await sheets.spreadsheets.values.update({
         spreadsheetId: SPREADSHEET_ID,
         range: `${SHEET_NAME}!A1:I1`,
         valueInputOption: 'USER_ENTERED',
         requestBody: { values: headers }
       });
-      
+
       console.log('✅ Headers created in Google Sheet');
     } else {
       console.log('✅ Headers already exist in Google Sheet');
@@ -81,28 +81,28 @@ async function prepareSheet() {
 app.post('/api/submit-form', async (req, res) => {
   try {
     console.log('📥 Received form submission:', req.body);
-    
-    const { 
-      name, 
-      email, 
-      phone, 
-      city, 
-      details, 
-      formType = 'general', 
+
+    const {
+      name,
+      email,
+      phone,
+      city,
+      details,
+      formType = 'general',
       timestamp = new Date().toISOString(),
-      source = 'website' 
+      source = 'website'
     } = req.body;
 
     // Validate required fields
     if (!name || !email || !phone) {
-      return res.status(400).json({ 
-        error: 'Please fill all required fields: Name, Email, Phone' 
+      return res.status(400).json({
+        error: 'Please fill all required fields: Name, Email, Phone'
       });
     }
 
     // Format phone number (remove non-numeric)
     const cleanPhone = phone.toString().replace(/\D/g, '');
-    
+
     // Format data for Google Sheets
     const values = [[
       timestamp,
@@ -120,7 +120,7 @@ app.post('/api/submit-form', async (req, res) => {
 
     // Append data to Google Sheet
     const sheets = google.sheets({ version: 'v4', auth });
-    
+
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
       range: `${SHEET_NAME}!A:I`,
@@ -132,8 +132,8 @@ app.post('/api/submit-form', async (req, res) => {
     console.log('✅ Data written to Google Sheets:', { name, email });
 
     // Return success response
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       message: 'Form submitted successfully',
       data: {
         name,
@@ -145,8 +145,8 @@ app.post('/api/submit-form', async (req, res) => {
 
   } catch (error) {
     console.error('❌ Error submitting form:', error);
-    
-    res.status(500).json({ 
+
+    res.status(500).json({
       error: 'Failed to submit form. Please try again later.',
       details: error.message,
       code: error.code
@@ -158,12 +158,12 @@ app.post('/api/submit-form', async (req, res) => {
 app.get('/api/test', async (req, res) => {
   try {
     const sheets = google.sheets({ version: 'v4', auth });
-    
+
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: `${SHEET_NAME}!A1:I10`,
     });
-    
+
     res.status(200).json({
       success: true,
       message: 'Google Sheets connection successful',
@@ -179,8 +179,8 @@ app.get('/api/test', async (req, res) => {
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'OK', 
+  res.status(200).json({
+    status: 'OK',
     message: 'Server is running',
     timestamp: new Date().toISOString()
   });
@@ -190,12 +190,12 @@ app.get('/health', (req, res) => {
 app.get('/api/submissions', async (req, res) => {
   try {
     const sheets = google.sheets({ version: 'v4', auth });
-    
+
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: `${SHEET_NAME}!A:I`,
     });
-    
+
     res.status(200).json({
       success: true,
       data: response.data.values || []
@@ -212,11 +212,11 @@ app.get('/api/submissions', async (req, res) => {
 async function startServer() {
   // Test connection
   const connected = await testConnection();
-  
+
   if (connected) {
     // Prepare sheet (create headers if needed)
     await prepareSheet();
-    
+
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📊 Google Sheet: https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}`);
