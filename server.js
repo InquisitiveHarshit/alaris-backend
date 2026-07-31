@@ -1,17 +1,17 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const { google } = require('googleapis');
-require('dotenv').config();
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5173', 'https://alaris-frontend.vercel.app', 'https://centurion.gaursonprojects.in'],
-  credentials: true
-}));
+// Allow all origins — this is a public lead-capture form, no restriction needed.
+// This handles file://, Live Server (127.0.0.1:5500), localhost, and production equally.
+app.use(cors());
 app.use(express.json());
+
 
 // Google Sheets setup
 const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID;
@@ -207,6 +207,9 @@ app.get('/api/submissions', async (req, res) => {
     });
   }
 });
+
+// Serve frontend static files (index.html + assets) from parent directory
+app.use(express.static(path.join(__dirname, '..')));
 
 // Start server
 async function startServer() {
